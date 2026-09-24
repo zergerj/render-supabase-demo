@@ -11,6 +11,15 @@ const supabase = createClient(
   process.env.SUPABASE_KEY!
 );
 
+/**
+ * @openapi
+ * /machines:
+ *   get:
+ *     summary: Get all machines
+ *     responses:
+ *       200:
+ *         description: List of machines
+ */
 app.get("/machines", async (_req, res) => {
   const { data, error } = await supabase
     .from("machines")
