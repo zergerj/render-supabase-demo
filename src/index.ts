@@ -1,5 +1,7 @@
 import express from "express";
 import { createClient } from "@supabase/supabase-js";
+import swaggerUi from "swagger-ui-express";
+import swaggerJsdoc from "swagger-jsdoc";
 
 const app = express();
 app.use(express.json());
@@ -73,3 +75,16 @@ const port = Number(process.env.PORT) || 3000;
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server listening on port ${port}`);
 });
+
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Machines API",
+      version: "1.0.0"
+    }
+  },
+  apis: ["./src/*.ts"]
+});
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
