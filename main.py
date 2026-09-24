@@ -2,7 +2,11 @@ import os
 
 from fastapi import FastAPI
 from supabase import create_client, Client
+from pydantic import BaseModel
 
+class Machine(BaseModel):
+    name: str
+    status: str
 
 app = FastAPI()
 
@@ -30,6 +34,20 @@ def get_machines():
         supabase
         .table("machines")
         .select("*")
+        .execute()
+    )
+
+    return response.data
+
+@app.post("/machines")
+def create_machine(machine: Machine):
+    response = (
+        supabase
+        .table("machines")
+        .insert({
+            "name": machine.name,
+            "status": machine.status
+        })
         .execute()
     )
 
