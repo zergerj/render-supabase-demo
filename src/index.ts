@@ -68,7 +68,7 @@ app.delete("/machines/:id", async (req, res) => {
   res.json(data);
 });
 
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT) || 3000;
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server listening on port ${port}`);
