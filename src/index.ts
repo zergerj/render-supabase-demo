@@ -32,6 +32,31 @@ app.get("/machines", async (_req, res) => {
   res.json(data);
 });
 
+/**
+ * @openapi
+ * /machines:
+ *   post:
+ *     summary: Create a machine
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - status
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Machine 004
+ *               status:
+ *                 type: string
+ *                 example: online
+ *     responses:
+ *       201:
+ *         description: Machine created
+ */
 app.post("/machines", async (req, res) => {
   const { name, status } = req.body;
 
@@ -93,7 +118,8 @@ const swaggerSpec = swaggerJsdoc({
       version: "1.0.0"
     }
   },
-  apis: ["./src/*.ts"]
+  apis: ["./src/*.ts",
+    "./dist/*.js"]
 });
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
