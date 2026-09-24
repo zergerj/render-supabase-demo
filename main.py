@@ -1,6 +1,19 @@
+import os
+
 from fastapi import FastAPI
+from supabase import create_client, Client
+
 
 app = FastAPI()
+
+
+supabase_url: str = os.environ["SUPABASE_URL"]
+supabase_key: str = os.environ["SUPABASE_KEY"]
+
+supabase: Client = create_client(
+    supabase_url,
+    supabase_key
+)
 
 
 @app.get("/")
@@ -12,15 +25,12 @@ def root():
 
 @app.get("/machines")
 def get_machines():
-    return [
-        {
-            "id": 1,
-            "name": "Machine 001",
-            "status": "online"
-        },
-        {
-            "id": 2,
-            "name": "Machine 002",
-            "status": "offline"
-        }
-    ]
+
+    response = (
+        supabase
+        .table("machines")
+        .select("*")
+        .execute()
+    )
+
+    return response.data
