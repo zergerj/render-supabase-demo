@@ -1,0 +1,6 @@
+[webhooks]
+api_version = "2026-07"
+
+[[webhooks.subscriptions]]
+topics = ["orders/paid"]
+uri = "https://render-supabase-demo.onrender.com/webhooks/shopify"
