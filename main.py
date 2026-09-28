@@ -1,121 +1,50 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from supabase import create_client, Client
+import base64
+import hashlib
+import hmac
 import os
+
+from fastapi import FastAPI, Request, HTTPException
 
 app = FastAPI()
 
-supabase_url = os.environ["SUPABASE_URL"]
-supabase_key = os.environ["SUPABASE_KEY"]
-
-supabase: Client = create_client(
-    supabase_url,
-    supabase_key
-)
+SHOPIFY_WEBHOOK_SECRET = os.getenv("SHOPIFY_WEBHOOK_SECRET", "")
 
 
-class MachineCreate(BaseModel):
-    name: str
-    status: str
+@app.get("/")
+def health():
+    return {"status": "ok"}
 
 
-class MachineUpdate(BaseModel):
-    name: str | None = None
-    status: str | None = None
+@app.post("/webhooks/shopify")
+async def shopify_webhook(request: Request):
+    body = await request.body()
 
+    topic = request.headers.get("X-Shopify-Topic")
+    shop = request.headers.get("X-Shopify-Shop-Domain")
+    received_hmac = request.headers.get("X-Shopify-Hmac-Sha256")
 
-@app.get("/machines")
-def get_machines():
-    response = (
-        supabase
-        .table("machines")
-        .select("*")
-        .execute()
-    )
+    print(f"Shopify webhook received")
+    print(f"Topic: {topic}")
+    print(f"Shop: {shop}")
+    print(f"Body: {body.decode('utf-8')}")
 
-    return response.data
+    # Verify webhook if secret is configured
+    if SHOPIFY_WEBHOOK_SECRET:
+        calculated_hmac = base64.b64encode(
+            hmac.new(
+                SHOPIFY_WEBHOOK_SECRET.encode("utf-8"),
+                body,
+                hashlib.sha256,
+            ).digest()
+        ).decode("utf-8")
 
+        if not received_hmac or not hmac.compare_digest(
+            calculated_hmac,
+            received_hmac,
+        ):
+            print("Invalid Shopify HMAC")
+            raise HTTPException(status_code=401, detail="Invalid HMAC")
 
-@app.get("/machines/{machine_id}")
-def get_machine(machine_id: int):
-    response = (
-        supabase
-        .table("machines")
-        .select("*")
-        .eq("id", machine_id)
-        .execute()
-    )
+        print("Shopify HMAC verified")
 
-    if not response.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Machine not found"
-        )
-
-    return response.data[0]
-
-
-@app.post("/machines")
-def create_machine(machine: MachineCreate):
-    response = (
-        supabase
-        .table("machines")
-        .insert({
-            "name": machine.name,
-            "status": machine.status
-        })
-        .execute()
-    )
-
-    return response.data
-
-
-@app.patch("/machines/{machine_id}")
-def update_machine(machine_id: int, machine: MachineUpdate):
-
-    update_data = machine.model_dump(exclude_none=True)
-
-    if not update_data:
-        raise HTTPException(
-            status_code=400,
-            detail="No fields supplied to update"
-        )
-
-    response = (
-        supabase
-        .table("machines")
-        .update(update_data)
-        .eq("id", machine_id)
-        .execute()
-    )
-
-    if not response.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Machine not found"
-        )
-
-    return response.data[0]
-
-
-@app.delete("/machines/{machine_id}")
-def delete_machine(machine_id: int):
-
-    response = (
-        supabase
-        .table("machines")
-        .delete()
-        .eq("id", machine_id)
-        .execute()
-    )
-
-    if not response.data:
-        raise HTTPException(
-            status_code=404,
-            detail="Machine not found"
-        )
-
-    return {
-        "message": "Machine deleted",
-        "machine": response.data[0]
-    }
+    return {"received": True}
